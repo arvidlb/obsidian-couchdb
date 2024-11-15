@@ -1,0 +1,42 @@
+services:
+  # Our database service, what we've started all of this for
+  couchdb:
+    image: couchdb:latest
+    container_name: couchdb
+    volumes:
+  # I prefer to externalise Docker volumes (use bind mount) rather
+  # than keep somewhere deep in `/var/lib/docker`
+      - /home/$USER/obsidian/couchdb/data:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - couchdb_network
+  
+  # Note how `couchdb` doesn't expose any ports? That's because 
+  # we don't want to expose CouchDB directly to the internet
+  # and instead we'll use Caddy - fast and configurable reverse
+  # proxy which makes many things a lot more simple.
+  caddy:
+    # Instead of using caddy:latest we build our own image. 
+    # Why is that? Read on!
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: caddy
+    ports:
+      - "5984:5984"
+    volumes:
+      - /home/$USER/obsidian/caddy/data:/data
+      - /home/$USER/obsidian/caddy/config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    restart: unless-stopped
+    networks:
+      - couchdb_network
+
+networks:
+  couchdb_network:
+    driver: bridge
