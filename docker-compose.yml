@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   # Our database service, what we've started all of this for
   couchdb:
